@@ -1,0 +1,17 @@
+msgid "plugins.generic.schemaOrg.displayName"
+msgstr "Scholarly Article Schema Eklentisi"
+
+msgid "plugins.generic.schemaOrg.description"
+msgstr "Makale sayfalarına Schema.org yapılandırılmış veri (ScholarlyArticle veya MedicalScholarlyArticle) JSON-LD formatında ekler. Semantik indekslemeyi, arama motoru anlamasını ve akademik içerik keşfini iyileştirir; mevcut Google Scholar meta etiketleriyle tam uyumlu çalışır."
+
+msgid "plugins.generic.schemaOrg.settings.schemaType"
+msgstr "Şema Türü"
+
+msgid "plugins.generic.schemaOrg.settings.schemaType.description"
+msgstr "Bu dergide yayımlanan makaleler için kullanılacak Schema.org türünü seçin. Bu, JSON-LD çıktısındaki @type değerini belirler."
+
+msgid "plugins.generic.schemaOrg.settings.scholarlyArticle.hint"
+msgstr "Genel akademik dergiler (varsayılan)"
+
+msgid "plugins.generic.schemaOrg.settings.medicalScholarlyArticle.hint"
+msgstr "Yalnızca tıp ve sağlık bilimleri dergileri"

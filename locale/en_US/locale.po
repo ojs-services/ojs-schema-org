@@ -1,0 +1,17 @@
+msgid "plugins.generic.schemaOrg.displayName"
+msgstr "Scholarly Article Schema Plugin"
+
+msgid "plugins.generic.schemaOrg.description"
+msgstr "Adds Schema.org structured data (ScholarlyArticle or MedicalScholarlyArticle) to article landing pages using JSON-LD format. Improves semantic indexing, search engine understanding, and academic content discovery while remaining fully compatible with existing Google Scholar meta tags."
+
+msgid "plugins.generic.schemaOrg.settings.schemaType"
+msgstr "Schema Type"
+
+msgid "plugins.generic.schemaOrg.settings.schemaType.description"
+msgstr "Select the Schema.org type to use for articles published in this journal. This determines the @type value in the JSON-LD output."
+
+msgid "plugins.generic.schemaOrg.settings.scholarlyArticle.hint"
+msgstr "General academic journals (default)"
+
+msgid "plugins.generic.schemaOrg.settings.medicalScholarlyArticle.hint"
+msgstr "Medical and health-science journals only"
