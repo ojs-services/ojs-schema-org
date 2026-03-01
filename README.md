@@ -256,4 +256,4 @@ Developed by **Kerim Sarıgül** of **OJS Services** - Professional OJS developm
 
 ---
 
-**Need custom OJS development?** Visit [ojsservices.com](https://ojs-services.com) for professional OJS consulting, plugin development, and technical support.
+**Need custom OJS development?** Visit [ojs-services.com](https://ojs-services.com) for professional OJS consulting, plugin development, and technical support.
