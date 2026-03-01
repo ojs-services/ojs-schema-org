@@ -227,9 +227,9 @@ After installation, validate your Schema.org output:
 ## Support & Development
 
 - **Developer**: Kerim Sarıgül
-- **Website**: https://ojsservices.com
+- **Website**: https://ojs-services.com
 - **GitHub**: https://github.com/ojs-services/ojs-schema-org
-- **Email**: info@ojsservices.com
+- **Email**: info@ojs-services.com
 
 ## License
 
@@ -256,4 +256,4 @@ Developed by **Kerim Sarıgül** of **OJS Services** - Professional OJS developm
 
 ---
 
-**Need custom OJS development?** Visit [ojsservices.com](https://ojsservices.com) for professional OJS consulting, plugin development, and technical support.
+**Need custom OJS development?** Visit [ojsservices.com](https://ojs-services.com) for professional OJS consulting, plugin development, and technical support.
