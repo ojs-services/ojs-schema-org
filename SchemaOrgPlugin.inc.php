@@ -10,9 +10,12 @@
  * section of article landing pages. Does not interfere with Google Scholar
  * meta tags (citation_*).
  *
- * Compatible with OJS 3.3.x, 3.4.x, 3.5.x
+ * Compatible with OJS 3.3.x
  */
 
+if (!function_exists('import')) {
+    return;
+}
 import('lib.pkp.classes.plugins.GenericPlugin');
 
 class SchemaOrgPlugin extends GenericPlugin {
@@ -101,20 +104,18 @@ class SchemaOrgPlugin extends GenericPlugin {
 
     /**
      * Hook callback: inject JSON-LD into the <head> of article pages.
-     *
-     * Listens to TemplateManager::display so we can detect whether the
-     * current page is an article landing page before injecting markup.
-     *
-     * @param string $hookName
-     * @param array  $args
-     * @return bool
      */
     public function callbackDisplay($hookName, $args) {
         $templateMgr = $args[0];
         $template     = $args[1] ?? '';
 
-        // Only act on the article detail page template
         if (!$this->_isArticlePage($template)) {
+            return false;
+        }
+
+        // Skip galley views — OJS 3.3 reuses article.tpl for inline galley viewer
+        $galley = $templateMgr->getTemplateVars('galley');
+        if ($galley) {
             return false;
         }
 
@@ -124,7 +125,6 @@ class SchemaOrgPlugin extends GenericPlugin {
             return false;
         }
 
-        // Retrieve published submission from template variables
         $article     = $templateMgr->getTemplateVars('article');
         $publication = $templateMgr->getTemplateVars('publication') ?: ($article ? $article->getCurrentPublication() : null);
         $issue       = $templateMgr->getTemplateVars('issue');
@@ -133,12 +133,19 @@ class SchemaOrgPlugin extends GenericPlugin {
             return false;
         }
 
+        // Avoid duplicate ld+json from theme or another plugin
+        $additionalHead = $templateMgr->getTemplateVars('additionalHeadData') ?? '';
+        if (strpos($additionalHead, 'application/ld+json') !== false) {
+            return false;
+        }
+
         $jsonLd = $this->_buildJsonLd($article, $publication, $issue, $context, $request);
         if (!$jsonLd) {
             return false;
         }
 
-        $scriptTag = '<script type="application/ld+json">' . json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . '</script>';
+        $encoded = json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_PRETTY_PRINT);
+        $scriptTag = '<script type="application/ld+json">' . $encoded . '</script>';
         $templateMgr->addHeader('schemaOrgJsonLd', $scriptTag);
 
         return false;
@@ -148,46 +155,25 @@ class SchemaOrgPlugin extends GenericPlugin {
     // Private helpers
     // ------------------------------------------------------------------
 
-    /**
-     * Determine whether the current template corresponds to an article page.
-     *
-     * Covers template names across OJS 3.3 – 3.5.
-     *
-     * @param string $template
-     * @return bool
-     */
     private function _isArticlePage($template) {
-        // Match article detail page templates across OJS 3.3 – 3.5 and custom themes.
-        // Exclude galley views (e.g. PDF viewer).
         return strpos($template, 'article.tpl') !== false
             && strpos($template, 'galley') === false;
     }
 
     /**
      * Build the Schema.org JSON-LD array from OJS metadata.
-     *
-     * Uses only the objects already loaded by OJS (no extra DB queries).
-     *
-     * @param object $article     Submission object
-     * @param object $publication Publication object
-     * @param object $issue       Issue object (may be null)
-     * @param object $context     Journal context
-     * @param object $request     PKP Request
-     * @return array|null
      */
     private function _buildJsonLd($article, $publication, $issue, $context, $request) {
-        // AppLocale was deprecated in OJS 3.4; fall back gracefully.
-        if (class_exists('\\APP\\i18n\\Locale')) {
-            $locale = \APP\i18n\Locale::getLocale();
-        } else {
-            $locale = \AppLocale::getLocale();
+        // Publication locale = content language (not UI locale)
+        $locale = $publication->getData('locale');
+        if (!$locale) {
+            $locale = $context->getData('primaryLocale');
         }
 
-        // Schema type from plugin settings
         $schemaType = $this->getSetting($context->getId(), 'schemaType') ?: 'ScholarlyArticle';
 
-        // Headline / title
-        $title = $publication->getLocalizedTitle($locale);
+        // Title
+        $title = $publication->getData('title', $locale);
         if (!$title) {
             $title = $publication->getLocalizedTitle();
         }
@@ -201,28 +187,32 @@ class SchemaOrgPlugin extends GenericPlugin {
             'headline' => $title,
         ];
 
-        // Abstract / description
-        $abstract = $publication->getLocalizedData('abstract', $locale);
+        // Abstract — decode HTML entities, strip tags, normalize whitespace
+        $abstract = $publication->getData('abstract', $locale);
         if (!$abstract) {
             $abstract = $publication->getLocalizedData('abstract');
         }
         if ($abstract) {
-            $jsonLd['description'] = strip_tags($abstract);
+            $clean = html_entity_decode(strip_tags($abstract), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $clean = preg_replace('/\s+/', ' ', trim($clean));
+            if ($clean !== '') {
+                $jsonLd['description'] = $clean;
+            }
         }
 
         // Authors
-        $authors = $this->_getAuthors($publication);
+        $authors = $this->_getAuthors($publication, $locale);
         if (!empty($authors)) {
             $jsonLd['author'] = $authors;
         }
 
-        // Date published
+        // Date published — normalize to YYYY-MM-DD
         $datePublished = $publication->getData('datePublished');
         if ($datePublished) {
-            $jsonLd['datePublished'] = $datePublished;
+            $jsonLd['datePublished'] = substr($datePublished, 0, 10);
         }
 
-        // DOI – try multiple access patterns for OJS 3.3 / 3.4 / 3.5
+        // DOI — multiple access patterns for OJS 3.3 / 3.4
         $doi = $publication->getData('pub-id::doi');
         if (!$doi && method_exists($publication, 'getStoredPubId')) {
             $doi = $publication->getStoredPubId('doi');
@@ -239,15 +229,23 @@ class SchemaOrgPlugin extends GenericPlugin {
             $jsonLd['sameAs'] = 'https://doi.org/' . $doi;
         }
 
-        // URL
+        // URL + @id + mainEntityOfPage
         $dispatcher = $request->getDispatcher();
         $url = $dispatcher->url($request, ROUTE_PAGE, $context->getPath(), 'article', 'view', [$article->getBestId()]);
         if ($url) {
             $jsonLd['url'] = $url;
+            $jsonLd['@id'] = $url;
+            $jsonLd['mainEntityOfPage'] = [
+                '@type' => 'WebPage',
+                '@id'   => $url,
+            ];
         }
 
-        // Publisher (journal)
-        $publisherName = $context->getLocalizedName();
+        // Publisher — prefer publisherInstitution, fall back to journal name
+        $publisherName = $context->getData('publisherInstitution');
+        if (!$publisherName) {
+            $publisherName = $context->getLocalizedName();
+        }
         if ($publisherName) {
             $jsonLd['publisher'] = [
                 '@type' => 'Organization',
@@ -255,19 +253,27 @@ class SchemaOrgPlugin extends GenericPlugin {
             ];
         }
 
-        // isPartOf – journal + issue/volume
+        // isPartOf — journal + issue/volume
         $isPartOf = $this->_buildIsPartOf($context, $issue, $publication);
         if ($isPartOf) {
             $jsonLd['isPartOf'] = $isPartOf;
         }
 
-        // Keywords
-        $keywords = $publication->getLocalizedData('keywords', $locale);
+        // Keywords — flatten nested arrays, output as schema.org array
+        $keywords = $publication->getData('keywords', $locale);
         if (!$keywords) {
             $keywords = $publication->getLocalizedData('keywords');
         }
-        if (!empty($keywords)) {
-            $jsonLd['keywords'] = implode(', ', $keywords);
+        if (!empty($keywords) && is_array($keywords)) {
+            $flat = [];
+            array_walk_recursive($keywords, function ($v) use (&$flat) {
+                if (is_string($v) && $v !== '') {
+                    $flat[] = $v;
+                }
+            });
+            if (!empty($flat)) {
+                $jsonLd['keywords'] = $flat;
+            }
         }
 
         // Page numbers
@@ -296,14 +302,10 @@ class SchemaOrgPlugin extends GenericPlugin {
 
     /**
      * Extract author information from a Publication object.
-     *
-     * @param object $publication
-     * @return array
      */
-    private function _getAuthors($publication) {
+    private function _getAuthors($publication, $locale) {
         $authors = [];
 
-        // OJS 3.4+ uses getAuthors() on the publication
         if (method_exists($publication, 'getData') && $publication->getData('authors')) {
             $authorObjects = $publication->getData('authors');
         } else {
@@ -315,8 +317,15 @@ class SchemaOrgPlugin extends GenericPlugin {
                 '@type' => 'Person',
             ];
 
-            $givenName  = $author->getLocalizedGivenName();
-            $familyName = $author->getLocalizedFamilyName();
+            // Use publication locale for author names
+            $givenName = $author->getData('givenName', $locale);
+            if (!$givenName) {
+                $givenName = $author->getLocalizedGivenName();
+            }
+            $familyName = $author->getData('familyName', $locale);
+            if (!$familyName) {
+                $familyName = $author->getLocalizedFamilyName();
+            }
 
             if ($givenName) {
                 $authorData['givenName'] = $givenName;
@@ -330,9 +339,12 @@ class SchemaOrgPlugin extends GenericPlugin {
                 $authorData['name'] = $fullName;
             }
 
-            // Affiliation
-            $affiliation = $author->getLocalizedData('affiliation');
-            if ($affiliation) {
+            // Affiliation — use publication locale, fall back to any locale
+            $affiliation = $author->getData('affiliation', $locale);
+            if (!$affiliation) {
+                $affiliation = $author->getLocalizedData('affiliation');
+            }
+            if ($affiliation && is_string($affiliation)) {
                 $authorData['affiliation'] = [
                     '@type' => 'Organization',
                     'name'  => $affiliation,
@@ -355,11 +367,6 @@ class SchemaOrgPlugin extends GenericPlugin {
 
     /**
      * Build the isPartOf structure (Journal > Issue).
-     *
-     * @param object      $context
-     * @param object|null $issue
-     * @param object      $publication
-     * @return array|null
      */
     private function _buildIsPartOf($context, $issue, $publication) {
         $journalData = [
@@ -402,7 +409,7 @@ class SchemaOrgPlugin extends GenericPlugin {
 
         $datePublished = $issue->getData('datePublished');
         if ($datePublished) {
-            $issueData['datePublished'] = $datePublished;
+            $issueData['datePublished'] = substr($datePublished, 0, 10);
         }
 
         return $issueData;

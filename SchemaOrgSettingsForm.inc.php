@@ -13,6 +13,9 @@
  * Settings are stored per journal (context-level).
  */
 
+if (!function_exists('import')) {
+    return;
+}
 import('lib.pkp.classes.form.Form');
 
 class SchemaOrgSettingsForm extends \Form {
