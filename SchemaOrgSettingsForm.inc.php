@@ -36,6 +36,8 @@ class SchemaOrgSettingsForm extends \Form {
         $this->plugin    = $plugin;
         $this->contextId = $contextId;
         parent::__construct($plugin->getTemplateResource('settings.tpl'));
+        $this->addCheck(new \FormValidatorPost($this));
+        $this->addCheck(new \FormValidatorCSRF($this));
     }
 
     /**
