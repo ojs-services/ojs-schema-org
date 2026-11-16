@@ -138,9 +138,9 @@ After installation, validate your Schema.org output:
 ## Support & Development
 
 - **Developer**: Kerim Sarıgül
-- **Website**: https://ojsservices.com
+- **Website**: https://ojs-services.com
 - **GitHub**: https://github.com/ojs-services/ojs-schema-org
-- **Email**: info@ojsservices.com
+- **Email**: info@ojs-services.com
 
 ## License
 
