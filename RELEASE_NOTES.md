@@ -237,8 +237,8 @@ chmod -R 755 schemaOrg
 ### Contact & Support
 - **Developer:** Kerim Sarıgül
 - **Company:** OJS Services
-- **Website:** https://ojsservices.com
-- **Email:** info@ojsservices.com
+- **Website:** https://ojs-services.com
+- **Email:** info@ojs-services.com
 - **GitHub:** https://github.com/ojs-services/ojs-schema-org
 
 ### Professional Services
@@ -249,7 +249,7 @@ Need custom OJS development or consulting?
 - Migration services
 - Technical support
 
-Visit [ojsservices.com](https://ojsservices.com) for more information.
+Visit [ojs-services.com](https://ojs-services.com) for more information.
 
 ## Roadmap
 
