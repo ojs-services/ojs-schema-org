@@ -32,6 +32,18 @@ class SchemaOrgPlugin extends GenericPlugin {
     }
 
     /**
+     * @copydoc Plugin::getLocaleFilename()
+     */
+    public function getLocaleFilename($locale) {
+        $files = (array) parent::getLocaleFilename($locale);
+        $english = $this->getPluginPath() . '/locale/en_US/locale.po';
+        if ($locale !== 'en_US' && file_exists($english)) {
+            array_unshift($files, $english);
+        }
+        return $files;
+    }
+
+    /**
      * @copydoc Plugin::getDisplayName()
      */
     public function getDisplayName() {
@@ -206,17 +218,20 @@ class SchemaOrgPlugin extends GenericPlugin {
             $jsonLd['author'] = $authors;
         }
 
-        // Date published — normalize to YYYY-MM-DD
+        // Date published — ISO 8601 with timezone
         $datePublished = $publication->getData('datePublished');
-        if ($datePublished) {
-            $jsonLd['datePublished'] = substr($datePublished, 0, 10);
+        if ($datePublished && ($ts = strtotime($datePublished)) !== false) {
+            $jsonLd['datePublished'] = date('c', $ts);
         }
 
-        // DOI — multiple access patterns for OJS 3.3 / 3.4
-        $doi = $publication->getData('pub-id::doi');
-        if (!$doi && method_exists($publication, 'getStoredPubId')) {
-            $doi = $publication->getStoredPubId('doi');
+        // Date modified
+        $lastModified = $publication->getData('lastModified');
+        if ($lastModified && ($ts = strtotime($lastModified)) !== false) {
+            $jsonLd['dateModified'] = date('c', $ts);
         }
+
+        // DOI
+        $doi = $publication->getStoredPubId('doi');
         if (!$doi) {
             $doi = $publication->getData('doiObject') ? $publication->getData('doiObject')->getData('doi') : null;
         }
@@ -408,8 +423,8 @@ class SchemaOrgPlugin extends GenericPlugin {
         }
 
         $datePublished = $issue->getData('datePublished');
-        if ($datePublished) {
-            $issueData['datePublished'] = substr($datePublished, 0, 10);
+        if ($datePublished && ($ts = strtotime($datePublished)) !== false) {
+            $issueData['datePublished'] = date('c', $ts);
         }
 
         return $issueData;

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.3.4 (2026-11-27)
+
+- Fix contact domain (ojs-services.com)
+- Use getStoredPubId('doi') as primary DOI access method
+
+## 1.0.3.3 (2026-11-27)
+
+- Add English fallback for missing locale files (getLocaleFilename)
+- Add README_TR.md (Turkish)
+- Use wildcard compatibility block (3.3.0.x)
+
+## 1.0.3.2 (2026-11-14)
+
+- Output datePublished as ISO 8601 datetime with timezone (date('c'))
+- Add dateModified from publication lastModified field
+- Skip date fields when value is empty or invalid
+
 ## 1.0.3.1 (2026-10-09)
 
 - Add FormValidatorPost and FormValidatorCSRF to settings form
