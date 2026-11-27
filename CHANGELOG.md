@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.0.2 (2026-11-27)
+
+- Fix contact domain (ojs-services.com)
+- Use getStoredPubId('doi') as primary DOI access method
+
+## 2.0.0.1 (2026-11-27)
+
+- Add English fallback for missing locale via Locale::translate hook
+- Add README_TR.md (Turkish)
+- Use wildcard compatibility block (3.4.0.x, 3.5.0.x)
+
+## 2.0.0.0 (2026-11-14)
+
+- Output datePublished as ISO 8601 datetime with timezone (date('c'))
+- Add dateModified from publication lastModified field
+- Skip date fields when value is empty or invalid
+- Version scheme: separate MAJOR per branch (new naming rule)
+
 ## 1.0.3.2 (2026-10-09)
 
 - Add upgrade guide for OJS 3.3 to 3.4/3.5 migration in README

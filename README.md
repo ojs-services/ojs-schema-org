@@ -1,8 +1,8 @@
 # Scholarly Article Schema Plugin
 
-**Version:** 1.0.3.2
+**Version:** 2.0.0.2
 **Author:** Kerim Sarıgül (OJS Services)
-**Compatibility:** OJS 3.4.0.3–3.4.0.10, OJS 3.5.0.3–3.5.0.5
+**Compatibility:** OJS 3.4.0.x, OJS 3.5.0.x
 **License:** GPL v3
 
 ## Overview

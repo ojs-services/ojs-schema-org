@@ -17,14 +17,20 @@ use APP\template\TemplateManager;
 use PKP\core\JSONMessage;
 use PKP\linkAction\LinkAction;
 use PKP\linkAction\request\AjaxModal;
+use PKP\facades\Locale;
 use PKP\plugins\GenericPlugin;
 use PKP\plugins\Hook;
 
 class SchemaOrgPlugin extends GenericPlugin
 {
+    const LOCALE_PREFIX = 'plugins.generic.schemaOrg.';
+
+    private static $_englishFallbackRegistered = false;
+
     public function register($category, $path, $mainContextId = null)
     {
         $success = parent::register($category, $path, $mainContextId);
+        $this->_registerEnglishFallback();
         if (Application::isUnderMaintenance()) {
             return true;
         }
@@ -89,6 +95,28 @@ class SchemaOrgPlugin extends GenericPlugin
                 return new JSONMessage(true, $form->fetch($request));
         }
         return parent::manage($args, $request);
+    }
+
+    // ------------------------------------------------------------------
+    // English fallback
+    // ------------------------------------------------------------------
+
+    private function _registerEnglishFallback(): void
+    {
+        if (self::$_englishFallbackRegistered) return;
+        self::$_englishFallbackRegistered = true;
+        Hook::add('Locale::translate', function (string $hookName, array $args): bool {
+            $value = &$args[0];
+            $key = (string) $args[1];
+            $locale = (string) $args[4];
+            if ($locale === 'en' || strpos($key, self::LOCALE_PREFIX) !== 0) return Hook::CONTINUE;
+            $english = $args[3] === null
+                ? Locale::get($key, (array) $args[2], 'en')
+                : Locale::choice($key, (int) $args[3], (array) $args[2], 'en');
+            if (strpos($english, '##') === 0) return Hook::CONTINUE;
+            $value = $english;
+            return Hook::ABORT;
+        });
     }
 
     // ------------------------------------------------------------------
@@ -192,18 +220,22 @@ class SchemaOrgPlugin extends GenericPlugin
         }
 
         $datePublished = $publication->getData('datePublished');
-        if ($datePublished) {
-            $jsonLd['datePublished'] = substr($datePublished, 0, 10);
+        if ($datePublished && ($ts = strtotime($datePublished)) !== false) {
+            $jsonLd['datePublished'] = date('c', $ts);
+        }
+
+        $lastModified = $publication->getData('lastModified');
+        if ($lastModified && ($ts = strtotime($lastModified)) !== false) {
+            $jsonLd['dateModified'] = date('c', $ts);
         }
 
         // DOI
-        $doi = null;
-        $doiObject = $publication->getData('doiObject');
-        if ($doiObject) {
-            $doi = $doiObject->getData('doi');
-        }
+        $doi = $publication->getStoredPubId('doi');
         if (!$doi) {
-            $doi = $publication->getData('pub-id::doi');
+            $doiObject = $publication->getData('doiObject');
+            if ($doiObject) {
+                $doi = $doiObject->getData('doi');
+            }
         }
         if ($doi) {
             $jsonLd['identifier'] = [
@@ -379,8 +411,8 @@ class SchemaOrgPlugin extends GenericPlugin
         }
 
         $datePublished = $issue->getData('datePublished');
-        if ($datePublished) {
-            $issueData['datePublished'] = substr($datePublished, 0, 10);
+        if ($datePublished && ($ts = strtotime($datePublished)) !== false) {
+            $issueData['datePublished'] = date('c', $ts);
         }
 
         return $issueData;
